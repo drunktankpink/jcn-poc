@@ -1,0 +1,76 @@
+trigger: none
+#  branches:
+#    include:
+#      - main
+#  paths:
+#    exclude:
+#      - README.md
+
+parameters:
+- name: serviceName
+  default: jcn-poc
+
+variables:
+- group: global-pipeline-config
+
+stages:
+- stage: test_deployment
+  displayName: Deploy to Test Environment
+  variables:
+    - name: terraform_service_connection 
+      value: $(service_connection)
+    - name: terraform_state_bucket
+      value: $(tf_state_bucket)
+    - name: terraform_state_key
+      value: '${{ parameters.serviceName }}/$(state_file_name)'
+    - name: working_directory
+      value: '$(Agent.BuildDirectory)/s/$(Build.Repository.Name)/tf'
+  jobs:
+  - job: deployment
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - checkout: self
+    - task: InstallSSHKey@0
+      inputs:
+        knownHostsEntry: $(ssh_known_host)
+        sshPublicKey: $(ssh_public_key)
+        sshKeySecureFile: git_ssh_key
+    - task: TerraformInstaller@0
+      displayName: Terraform Install
+      inputs:
+        terraformVersion: $(terraform_version)
+    - task: TerraformTaskV2@2
+      displayName: Terraform Init
+      inputs:
+        provider: 'aws'
+        command: 'init'
+        backendServiceAWS: ${{ variables.terraform_service_connection }}
+        backendAWSBucketName: $(terraform_state_bucket)
+        backendAWSKey: $(terraform_state_key)
+        workingDirectory: $(working_directory)
+    - task: TerraformTaskV2@2
+      displayName: Terraform Validate
+      inputs:
+        provider: 'aws'
+        environmentServiceNameAWS: ${{ variables.terraform_service_connection }}
+        command: 'validate'
+        workingDirectory: $(working_directory)
+    - task: TerraformTaskV2@2
+      displayName: Terraform Plan
+      inputs:
+        provider: 'aws'
+        environmentServiceNameAWS: ${{ variables.terraform_service_connection }}
+        command: 'plan'
+        commandOptions: '-out=$(working_directory)/terraform.tfplan' #-detailed-exitcode'
+        publishPlanResults: test_terraform_plan
+        workingDirectory: $(working_directory)
+    - task: TerraformTaskV2@2
+      displayName: Teraform Apply
+      condition: and(succeeded(), eq(variables['TERRAFORM_PLAN_HAS_CHANGES'], 'true'))
+      inputs:
+        provider: 'aws'
+        environmentServiceNameAWS: ${{ variables.terraform_service_connection }}
+        command: 'apply'
+        commandOptions: '$(working_directory)/terraform.tfplan -auto-approve'
+        workingDirectory: $(working_directory)
