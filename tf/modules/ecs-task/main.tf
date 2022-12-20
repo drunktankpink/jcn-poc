@@ -21,13 +21,30 @@ resource "aws_ecs_task_definition" "this" {
 }
 
 resource "aws_ecs_service" "this" {
-  name            = var.service_name
-  cluster         = var.cluster_id
-  task_definition = aws_ecs_task_definition.this.arn
-  desired_count   = var.desired_count
+  name                                = var.service_name
+  cluster                             = var.cluster_id
+  task_definition                     = aws_ecs_task_definition.this.arn
+  desired_count                       = var.desired_count
+  deployment_maximum_percent          = 100
+  deployment_minimum_healthy_percent  = 0
+  launch_type                         = "FARGATE"
+  scheduling_strategy                 = "REPLICA"
 
-  deployment_maximum_percent         = 100
-  deployment_minimum_healthy_percent = 0
+  network_configuration {
+    security_groups   = var.security_groups
+    subnets           = var.subnets
+    assign_public_ip  = false
+  }
+
+  load_balancer {
+    target_group_arn  = var.target_group_arn
+    container_name    = "${var.service_name}-container"
+    container_port    = var.container_port
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
+  }
 }
 
 resource "aws_security_group" "this" {
