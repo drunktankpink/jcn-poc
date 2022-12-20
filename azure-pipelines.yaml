@@ -18,11 +18,11 @@ stages:
   displayName: Deploy to Test Environment
   variables:
     - name: terraform_service_connection 
-      value: $(service_connection)
+      value: aws_dgb-dev
     - name: terraform_state_bucket
-      value: $(tf_state_bucket)
+      value: dgb-test-terraform-state-bucket
     - name: terraform_state_key
-      value: '${{ parameters.serviceName }}/$(state_file_name)'
+      value: "jcn-poc/terraform.tfstate"
     - name: working_directory
       value: '$(Agent.BuildDirectory)/s/$(Build.Repository.Name)/tf'
   jobs:
@@ -34,7 +34,7 @@ stages:
     - task: TerraformInstaller@0
       displayName: Terraform Install
       inputs:
-        terraformVersion: $(terraform_version)
+        terraformVersion: 1.2.4
     - task: TerraformTaskV2@2
       displayName: Terraform Init
       inputs:
