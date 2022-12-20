@@ -36,18 +36,17 @@ variable "security_groups" {
   type        = list(string)
 }
 
-
 # target group
 variable "lb_port" {
-  description = "The LB target type"
+  description = "The LB port"
   type        = string
-  default     = ""
+  default     = "80"
 }
 
 variable "target_type" {
   description = "The LB target type"
   type        = string
-  default     = ""
+  default     = "instance"
 }
 
 variable "ecs_target_id" {
