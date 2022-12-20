@@ -14,7 +14,7 @@ variables:
 - group: jcn-poc
 
 stages:
-- stage: test_deployment
+- stage: deployment
   displayName: Deploy to Test Environment
   variables:
     - name: terraform_service_connection 
