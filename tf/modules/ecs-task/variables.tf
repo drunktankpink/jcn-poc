@@ -20,8 +20,24 @@ variable "memory" {
   default     = 128
 }
 
+variable "cpu" {
+  description = "CPU allocation"
+  type        = number
+  default     = 256
+}
+
 variable "desired_count" {
   description = "The desired count for ECS task"
   type        = number
   default     = 1
+}
+
+variable "task_exe_role" {
+  description = "ECS task execution iam role"
+  type        = string
+}
+
+variable "task_def_role" {
+  description = "ECS task definition iam role"
+  type        = string
 }
