@@ -1,38 +1,44 @@
-resource "aws_cloudwatch_log_group" "this" {
-  name_prefix       = "${var.service_name}-"
-  retention_in_days = 1
-}
-
 resource "aws_ecs_task_definition" "this" {
   family = "${var.service_name}"
 
-  container_definitions = <<EOF
-[
-  {
-    "name": "${var.service_name}",
-    "image": "${var.container_image}",
-    "cpu": 0,
-    "memory": ${var.memory},
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-        "awslogs-region": "eu-west-2",
-        "awslogs-group": "${aws_cloudwatch_log_group.this.name}",
-        "awslogs-stream-prefix": "ec2"
-      }
-    }
-  }
-]
-EOF
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.cpu
+  memory                   = var.memory
+  execution_role_arn       = var.task_exe_role
+  task_role_arn            = var.task_def_role
+
+  container_definitions = jsonencode([{
+    name        = "${var.service_name}-container"
+    image       = "${var.container_image}"
+    essential   = true
+    portMappings = [{
+      protocol      = "tcp"
+      containerPort = var.container_port
+      hostPort      = var.container_port
+    }]
+  }])
 }
 
 resource "aws_ecs_service" "this" {
-  name            = "${var.service_name}"
+  name            = var.service_name
   cluster         = var.cluster_id
   task_definition = aws_ecs_task_definition.this.arn
-
   desired_count   = var.desired_count
 
   deployment_maximum_percent         = 100
   deployment_minimum_healthy_percent = 0
+}
+
+resource "aws_security_group" "this" {
+  name   = "${var.service_name}-task-sg"
+  vpc_id = var.vpc_id
+
+  ingress {
+    protocol         = "tcp"
+    from_port        = var.container_port
+    to_port          = var.container_port
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
 }
