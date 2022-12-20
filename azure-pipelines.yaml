@@ -11,7 +11,7 @@ parameters:
   default: jcn-poc
 
 variables:
-- group: global-pipeline-config
+- group: jcn-poc
 
 stages:
 - stage: test_deployment
@@ -31,11 +31,6 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - checkout: self
-    - task: InstallSSHKey@0
-      inputs:
-        knownHostsEntry: $(ssh_known_host)
-        sshPublicKey: $(ssh_public_key)
-        sshKeySecureFile: git_ssh_key
     - task: TerraformInstaller@0
       displayName: Terraform Install
       inputs:
